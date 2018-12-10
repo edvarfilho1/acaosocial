@@ -6,13 +6,13 @@
             "type": "endpoint",
             "appId": "c675792e-5d56-4dae-9ce7-6116305edf43",
             "appPassword": "kmKYUPP7217!rmcthNK2@]:",
-            "endpoint": "https://acaosocial.herokuapp.com/",
+            "endpoint": "http://localhost:3978/acaosocial",
             "id": "c7654e20-fbce-11e8-bb3e-bdfd06aa3833",
             "name": "acaosocial"
         }
     ],
     "padlock": "",
     "version": "2.0",
-    "overrides": null,
-    "path": "C:\\Users\\Edvar Filho\\Desktop\\acaosocial\\acaosocialheroku.bot"
+    "path": "C:\\Users\\Edvar Filho\\Desktop\\acaosocial\\acaosocialheroku.bot",
+    "overrides": null
 }

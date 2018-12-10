@@ -2,17 +2,10 @@ var restify = require('restify');
 var builder = require('botbuilder');
 var request = require('request');
 
-/*var baseURL = 'https://developers.zomato.com/api/v2.1/';
-var apiKey = 'CHAVE_AQUI'; //Zomato key
+var baseURLIBGEEstado = 'https://servicodados.ibge.gov.br/api/v1/localidades/estados';
+var baseURLIBGEMunicipio = 'https://servicodados.ibge.gov.br/api/v1/localidades/estados/';
+var baseURLBolsaFamilia = 'http://www.transparencia.gov.br/api-de-dados/bolsa-familia-por-municipio?mesAno=';
 
-var catergories = null;
-var cuisines = null;
-
-getCategories();
-
-getCuisines(76);
-
-*/
 // Setup Restify Server
 var server = restify.createServer();
 server.listen(process.env.port || process.env.PORT || 3978, function () {
@@ -27,13 +20,13 @@ var connector = new builder.ChatConnector({
 });
 
 // Listen for messages from users 
-server.post('/acaosocial/index.js', connector.listen());
+server.post('/acaosocial', connector.listen());
 
 // This is a dinner reservation bot that uses multiple dialogs to prompt users for input.
 var bot = new builder.UniversalBot(connector, [
     function (session) {
-        session.send("Olá! Faminto? Procurando por um restaurante?");
-        session.send("Diga 'buscar restaurante' para iniciar a pesquisa.");
+        session.send("Olá! Caro Funcionário da Ação Social.");
+        session.send("Digite 'realizar busca' para iniciar a pesquisa.");
         //session.endDialog();
     }
 ]);
@@ -46,111 +39,107 @@ bot.recognizer({
 
         if (context.message.text) {
             switch (context.message.text.toLowerCase()) {
-                case 'help':
-                    intent = { score: 1.0, intent: 'get-help' };
+                case "realizar busca":
+                    intent = {score: 1.0, intent: 'realizar-busca'}
                     break;
-                case 'goodbye':
+                case 'obrigado':
                     intent = { score: 1.0, intent: 'say-goodbye' };
                     break;
+                case 'ok':
+                    intent = { score: 1.0, intent: 'say-goodbye'};
             }
         }
         done(null, intent);
     }
 });
 
-
-bot.dialog('help', [
+bot.dialog('say-goodbye', [
     function (session) {
-        session.send('Eu posso te ajudar a procurar um restaurante ou realizar um pedido!');
-        session.endDialog();
-    }
-]).triggerAction({
-    matches: 'get-help'
-});
-
-bot.dialog('goodbye', [
-    function (session) {
-        session.send('Adeus!');
+        session.send('Obrigado! Até mais.');
         session.endConversation();
     }
 ]).triggerAction({
     matches: 'say-goodbye'
 });
 
-           
 
-// Search for a restaurant
-bot.dialog('searchRestaurant', [
+bot.dialog('realizar-busca', [
     function (session) {
-        session.send('Ok. Procurando por um restaurante!');
-        builder.Prompts.text(session, 'Onde?');
+        session.send('Ok. Procurar por dados referentes ao Bolsa Família de um município!');
+        builder.Prompts.text(session, 'Informe o estado do Município');
     },
     function (session, results) {
-        session.conversationData.searchLocation = results.response;
-        builder.Prompts.text(session, 'Cozinha? Indiana, Italiana, ou uma outra?');
+        session.conversationData.estado = results.response, session;
+        builder.Prompts.text(session, 'Informe o nome do Município');
     },
     function (session, results) {
-        session.conversationData.searchCuisine = results.response;
-        builder.Prompts.text(session, 'Entrega ou Jantar?');
+        session.conversationData.municipio = results.response;
+        builder.Prompts.text(session, 'Informe o mês que deseja realizar a busca');
     },
     function (session, results) {
-        session.conversationData.searchCategory = results.response;
-        session.send('Ok. Procurando por restaurantes..');
-        getRestaurant(session.conversationData.searchCuisine, 
-                      session.conversationData.searchLocation, 
-                      session.conversationData.searchCategory, 
-                      session);
+        session.conversationData.mes = results.response;
+        builder.Prompts.text(session, 'Informe o ano que deseja realizar a busca');
+    },
+    function (session, results) {
+        session.conversationData.ano = results.response;
+        session.send('Ok. Procurando por valores..');
+        getValor(session.conversationData.estado, 
+            session.conversationData.municipio,
+            session.conversationData.mes,
+            session.conversationData.ano, 
+            session);
     }
 ])
     .triggerAction({
-    matches: /^buscar restaurante$/i,
-    confirmPrompt: 'Sua tarefa de procurar um restaurante será abandonada. Tem certeza?'
+    matches: 'realizar-busca',
+    confirmPrompt: 'Sua tarefa de procurar dados do município será abandonada. Tem certeza?'
 });
 
 
-
-function getRestaurant(cuisine, location, category, session){
-    
-    var cuisineId = getCuisineId(cuisine);
-    var categoryId = getCategoryId(category);
-    
-    var options = {
-        uri: baseURL + 'locations',
-        headers: {
-            'user-key': apiKey
-        },
-        qs: {'query':location},
-        method: 'GET'
-        }
-    var callback = function(error, response, body) {
-            if (error) {
-                console.log('Erro ao enviar mensagens: ', error)
-            } else if (response.body.error) {
-                console.log('Erro: ', response.body.error)
-            } else {
-                console.log(body);
-                locationInfo = JSON.parse(body).location_suggestions;
-                search(locationInfo[0], cuisineId, categoryId, session);
-                
-            }
-        }
-    
-    request(options,callback);
-    
-    
+function getMes(mes){
+    mes = mes.toLowerCase();
+    if(mes.localeCompare('01')||mes.localeCompare('janeiro')){
+        return '01';
+    }
+    if(mes.localeCompare('02')||mes.localeCompare('fevereiro')){
+        return '02';
+    }
+    if(mes.localeCompare('03')||mes.localeCompare('março')){
+        return '03';
+    }
+    if(mes.localeCompare('04')||mes.localeCompare('abril')){
+        return '04';
+    }
+    if(mes.localeCompare('05')||mes.localeCompare('maio')){
+        return '05';
+    }
+    if(mes.localeCompare('06')||mes.localeCompare('junho')){
+        return '06';
+    }
+    if(mes.localeCompare('07')||mes.localeCompare('julho')){
+        return '07';
+    }
+    if(mes.localeCompare('08')||mes.localeCompare('agosto')){
+        return '08';
+    }
+    if(mes.localeCompare('09')||mes.localeCompare('setembro')){
+        return '01';
+    }
+    if(mes.localeCompare('10')||mes.localeCompare('outubro')){
+        return '10';
+    }
+    if(mes.localeCompare('11')||mes.localeCompare('novembro')){
+        return '11';
+    }
+    if(mes.localeCompare('12')||mes.localeCompare('dezembro')){
+        return '12';
+    }
 }
 
-function search(location, cuisineId, categoryId, session){
+
+function getValor(estado, municipio, mes, ano, session){
     var options = {
-        uri: baseURL + 'search',
-        headers: {
-            'user-key': apiKey
-        },
-        qs: {'entity_id': location.entity_id,
-            'entity_type': location.entity_type, 
-            'cuisines': [cuisineId],
-            'category': categoryId},
-        method: 'GET'
+        uri: baseURLIBGEEstado
     }
     var callback = function(error, response, body) {
             if (error) {
@@ -158,126 +147,90 @@ function search(location, cuisineId, categoryId, session){
             } else if (response.body.error) {
                 console.log('Erro: ', response.body.error)
             } else {
-                console.log('Restaurantes Encontrados:')
+                console.log('Valor Encontrado:')
                 console.log(body);
-                //var resultsCount = JSON.parse(body).results_found;
-                //console.log('Found:' + resultsCount);
-                //session.send('I have found ' + resultsCount + ' restaurants for you!');
-                var results = JSON.parse(body).restaurants;
-                //console.log(results);
-                var msg = presentInCards(session, results);
-                session.send(msg);
+                var results = JSON.parse(body);
+                getMunicipio(session, results, estado, municipio, mes, ano);
                 session.endDialog();
             }
         }
-    
-    request(options,callback);
+    request(options,callback); 
 }
 
-
-
-function getCuisineId(cuisine, location){
-    var cuisine_id = null;
-    for (var i=0; i < cuisines.length; i++){
-        var c = cuisines[i].cuisine;
-        if (c.cuisine_name == cuisine){
-            cuisine_id = c.cuisine_id;
-            break;
+function getMunicipio(session, results, estado, municipio, mes, ano){
+    var idEstado;
+    for(var i=0; i<27; i++){
+        var sigla = results[i].sigla.toLowerCase();
+        var nome = results[i].nome.toLowerCase();
+        if((sigla==estado) || (nome==estado)){
+            idEstado = results[i].id;
         }
     }
-    console.log('Encontrado:' + cuisine_id);
-    return cuisine_id;
-}
+    console.log(idEstado);
 
-
-
-function getCuisines(cityId){
-    
     var options = {
-        uri: baseURL + 'cuisines',
-        headers: {
-            'user-key': apiKey
-        },
-        qs: {'city_id':cityId},
-        method: 'GET'
-        }
+        uri: baseURLIBGEMunicipio+idEstado+'/municipios'
+    }
     var callback = function(error, response, body) {
             if (error) {
                 console.log('Erro ao enviar mensagens: ', error)
             } else if (response.body.error) {
                 console.log('Erro: ', response.body.error)
             } else {
+                console.log('Valor Encontrado:')
                 console.log(body);
-                cuisines = JSON.parse(body).cuisines;
-                
+                var results = JSON.parse(body);
+                getDados(session, results, estado, municipio, mes, ano);
+                session.endDialog();
             }
         }
-    
     request(options,callback);
 }
 
-function getCategoryId(category){
-    var category_id = null;
-    for (var i=0; i < categories.length; i++){
-        var c = categories[i].categories;
-        if (c.name == category){
-            category_id = c.id;
-            break;
+
+function getDados(session, results, estado, municipio, mes, ano){
+    mes = getMes(mes);
+
+    var idMunicipio;
+    var achou = false;
+    var i = 0;
+    while(!achou){
+        var nome = results[i].nome.toLowerCase();
+        if(nome==municipio){
+            idMunicipio = results[i].id;
+            achou = true;
+        }
+        else{
+            i++;
         }
     }
-    console.log('Found:' + category_id);
-    return category_id;
-}
+    console.log(idMunicipio);
 
-function getCategories(){
     var options = {
-        uri: baseURL + 'categories',
-        headers: {
-            'user-key': apiKey
-        },
-        qs: {},
-        method: 'GET'
-        }
+        uri:baseURLBolsaFamilia+ano+mes+'&codigoIbge='+idMunicipio+'&pagina=1'
+    }
     var callback = function(error, response, body) {
             if (error) {
                 console.log('Erro ao enviar mensagens: ', error)
             } else if (response.body.error) {
                 console.log('Erro: ', response.body.error)
             } else {
+                console.log('Valor Encontrado:')
                 console.log(body);
-                categories = JSON.parse(body).categories;
+                var results = JSON.parse(body);
+                apresentarDados(session, results);
+                session.endDialog();
             }
         }
-    
     request(options,callback);
+
 }
 
-function presentInCards(session, results){
-    
-    var msg = new builder.Message(session);
-    msg.attachmentLayout(builder.AttachmentLayout.carousel)
-    
-    var heroCardArray = [];
-    var l = results.length;
-    if (results.length > 10){
-        l = 10;
-    }
-    for (var i = 0; i < l; i++){
-        var r = results[i].restaurant;
-        
-        var herocard = new builder.HeroCard(session)
-            .title(r.name)
-            .subtitle(r.location.address)
-            .text(r.user_rating.aggregate_rating)
-            .images([builder.CardImage.create(session, r.thumb)])
-            .buttons([
-                builder.CardAction.imBack(session, "book_table:" + r.id, "Comprar")
-            ]);
-        heroCardArray.push(herocard);
-
-    }
-    
-    msg.attachments(heroCardArray);
-    
-    return msg;
+function apresentarDados(session, results){
+    session.send('Município: '+results[0].municipio.nomeIBGE);
+    session.send('Data de Referência: '+results[0].dataReferencia);
+    session.send('Valor: R$'+results[0].valor);
+    session.send('Quantidade de Beneficiados: '+results[0].quantidadeBeneficiados);
+    session.send("Digite 'obrigado' ou 'OK' para encerrar, ou 'realizar busca' para continuar a busca.");
+    session.endDialog();
 }

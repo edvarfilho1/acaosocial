@@ -1,6 +1,6 @@
 var restify = require('restify');
 var builder = require('botbuilder');
-var request = require('request');
+//var request = require('request');
 
 /*var baseURL = 'https://developers.zomato.com/api/v2.1/';
 var apiKey = 'CHAVE_AQUI'; //Zomato key
@@ -33,7 +33,7 @@ server.post('/acaosocial', connector.listen());
 var bot = new builder.UniversalBot(connector, [
     function (session) {
         session.send("Olá! Faminto? Procurando por um restaurante?");
-        session.send("Diga 'buscar restaurante' para iniciar a pesquisa.");
+        //session.send("Diga 'buscar restaurante' para iniciar a pesquisa.");
         //session.endDialog();
     }
 ]);
